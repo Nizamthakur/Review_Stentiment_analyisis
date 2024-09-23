@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Reviews</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Add Chart.js -->
+</head>
+<body>
+    <h1>Upload Reviews for Sentiment Analysis</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" accept=".csv" required>
+        <button type="submit">Upload Reviews</button>
+    </form>
+
+    <div>
+        <canvas id="reviewsChart" width="400" height="400"></canvas> <!-- Canvas for Chart -->
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch('/upload_reviews', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Something went wrong');
+                }
+
+                const data = await response.json();
+
+                // Extract percentages and remove the "%" sign for use in the chart
+                const positivePercentage = parseFloat(data.positive_percentage.replace('%', ''));
+                const negativePercentage = parseFloat(data.negative_percentage.replace('%', ''));
+
+                // Render the chart
+                const ctx = document.getElementById('reviewsChart').getContext('2d');
+                const reviewsChart = new Chart(ctx, {
+                    type: 'pie', // You can change this to 'bar' for a bar chart
+                    data: {
+                        labels: ['Positive Reviews', 'Negative Reviews'],
+                        datasets: [{
+                            label: 'Review Sentiment',
+                            data: [positivePercentage, negativePercentage],
+                            backgroundColor: ['#4CAF50', '#F44336'], // Green for positive, Red for negative
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return tooltipItem.label + ': ' + tooltipItem.raw.toFixed(2) + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error uploading reviews:', error);
+            }
+        };
+    </script>
+</body>
+</html>
